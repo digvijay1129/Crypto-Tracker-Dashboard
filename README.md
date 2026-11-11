@@ -1,70 +1,305 @@
-# Getting Started with Create React App
+# CryptoTracker Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A dark-themed cryptocurrency market dashboard for exploring live market data, viewing individual coin performance, and comparing two cryptocurrencies over selectable historical periods.
 
-## Available Scripts
+The React application uses the public CoinGecko API for market data and visualizes price, market capitalization, and trading-volume trends through interactive charts.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Market dashboard
+- Fetches the top 50 cryptocurrencies by market capitalization in USD.
+- Displays coin name, symbol, logo, current price, 24-hour price change, total volume, and market capitalization.
+- Switches between **Grid** and **List** layouts.
+- Searches the loaded market list by coin name or symbol.
+- Paginates the market list with 10 coins per page.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Coin details and historical charts
+- Opens an individual coin details page.
+- Displays coin information and description.
+- Loads historical market data for **7, 30, 60, or 90 days**.
+- Switches chart metrics between Price, Market Capitalization, and Total Trading Volume.
+- Shows historical values in a line chart.
 
-### `npm test`
+### Cryptocurrency comparison
+- Selects two different cryptocurrencies from the available market list.
+- Compares their market information and historical performance.
+- Uses a multi-series chart with separate axes for the two selected assets.
+- Supports the same 7, 30, 60, and 90-day periods and chart metric options.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Data caching and fallback
+- Caches market-list and coin-detail responses in browser local storage and in-memory state for approximately 30 seconds.
+- Caches historical chart data in local storage for approximately 30 seconds.
+- Reuses cached data when available and falls back to previously cached values if a CoinGecko request fails.
+- Displays a loading state while market or coin data is being retrieved.
 
-### `npm run build`
+### Landing page and navigation
+- Provides Home, Dashboard, and Compare navigation.
+- Includes an animated landing-page introduction.
+- Provides a share action through the browser's Web Share integration where supported.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Application architecture
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The main React application currently requests CoinGecko directly through Axios-based data helper functions. The Express service in the server directory is a separate, optional proxy API; the current React data helpers do not call that proxy.
 
-### `npm run eject`
+`mermaid
+flowchart TD
+    User[User / Browser] --> App[React Application]
+    App --> Router[React Router]
+    Router --> Home[Home Page]
+    Router --> Dashboard[Market Dashboard]
+    Router --> Coin[Coin Details]
+    Router --> Compare[Compare Page]
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+    Dashboard --> Helpers[Axios Data Helpers]
+    Coin --> Helpers
+    Compare --> Helpers
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+    Helpers --> Cache[Browser localStorage and in-memory cache]
+    Helpers -->|HTTPS REST requests| CG[CoinGecko Public API]
+    CG --> Helpers
+    Helpers --> Transform[Data formatting and chart preparation]
+    Transform --> UI[Material UI Components and Chart.js Visualizations]
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+    Proxy[Optional Express Proxy in server/server.mjs] -.->|Axios requests| CG
+    Proxy -.->|JSON endpoints on port 5000| ExternalClient[Optional API Client]
+`
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Data flow
 
-## Learn More
+1. The user opens the Dashboard, a coin details page, or the Compare page.
+2. The page calls the corresponding data helper.
+3. The helper checks its browser cache for a recent response.
+4. When fresh cached data is unavailable, Axios requests the relevant CoinGecko endpoint.
+5. The response is stored in the applicable cache and passed to the page.
+6. Formatting helpers normalize coin fields, dates, and chart datasets.
+7. React components render the market information and Chart.js line charts.
+8. If an API request fails, previously cached data may be used where available.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Optional Express proxy
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+The repository also contains a small Express 5 service that forwards requests to CoinGecko and returns JSON responses. It listens on port 5000 and exposes these routes:
 
-### Code Splitting
+| Method | Route | Purpose |
+|---|---|---|
+| GET | /api/100-coins | Fetches the first 100 market-listed coins in USD |
+| GET | /api/coin-data/:id | Fetches details for a coin ID |
+| GET | /api/coin-prices/:id?days=30 | Fetches historical market-chart data for the requested number of days |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+The proxy is available as a standalone service. The current frontend helper functions use CoinGecko URLs directly, so starting the proxy is not required to run the React dashboard.
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Technology stack
 
-### Making a Progressive Web App
+| Layer | Technologies |
+|---|---|
+| Frontend framework | React 19 |
+| Build and development tooling | Create React App, react-scripts 5 |
+| Routing | React Router DOM 7 |
+| UI components | Material UI 6, MUI Lab, Material Icons |
+| Charts | Chart.js 4, react-chartjs-2 |
+| HTTP requests | Axios |
+| Animations | Framer Motion |
+| Notifications | React Toastify |
+| Sharing | react-web-share |
+| Backend proxy | Node.js, Express 5, Axios, CORS |
+| Data provider | CoinGecko public REST API |
+| Browser caching | localStorage and in-memory JavaScript cache |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## Pages and routes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+| Route | Page | Description |
+|---|---|---|
+| / | Home | Landing page with navigation, dashboard call-to-action, and share action |
+| /dashboard | Dashboard | Market list/grid, coin search, and pagination |
+| /coin/:id | Coin Details | Coin information and historical metric chart |
+| /compare | Compare | Select and compare two cryptocurrencies |
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Project structure
 
-### `npm run build` fails to minify
+The tree below shows the main application source. Installed dependency directories and generated build output are omitted.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+`text
+Crypto-Tracker-Dashboard/
+├── public/
+│   ├── favicon.ico
+│   ├── index.html                 # HTML entry point and page metadata
+│   ├── logo192.png
+│   ├── logo512.png
+│   ├── manifest.json
+│   └── robots.txt
+│
+├── src/
+│   ├── assets/
+│   │   ├── gradient.png           # Landing-page visual asset
+│   │   └── iphone.png             # Landing-page visual asset
+│   │
+│   ├── components/
+│   │   ├── common/
+│   │   │   ├── BackToTop/          # Back-to-top control
+│   │   │   ├── Button/             # Shared button
+│   │   │   ├── Footer/             # Footer component
+│   │   │   ├── Header/             # Navigation and mobile drawer
+│   │   │   └── Loader/             # Loading indicator
+│   │   │
+│   │   ├── landingpage/
+│   │   │   └── MainComponenet/     # Landing-page hero and share action
+│   │   │
+│   │   ├── dashboard/
+│   │   │   ├── grid/               # Cryptocurrency grid card
+│   │   │   ├── list/               # Cryptocurrency list row
+│   │   │   ├── pagging/            # Dashboard pagination
+│   │   │   ├── search/             # Coin name/symbol search
+│   │   │   └── tabs/               # Grid and List view switcher
+│   │   │
+│   │   ├── coin/
+│   │   │   ├── Coininfo/           # Coin description section
+│   │   │   ├── LineChart/          # Historical data visualization
+│   │   │   ├── PriceType/          # Price, market cap, volume selector
+│   │   │   └── SelectDays/         # Historical period selector
+│   │   │
+│   │   └── ComparePage/
+│   │       └── SelectCoins/        # Two-coin selection controls
+│   │
+│   ├── functions/
+│   │   ├── convertDate.js          # Timestamp-to-date formatting
+│   │   ├── convertNumber.js        # Large-number formatting
+│   │   ├── convertobject.js        # Coin API response normalization
+│   │   ├── get100Coin.js           # Market-list request and cache
+│   │   ├── getCoinData.js          # Individual coin request and cache
+│   │   ├── getCoinPrices.js        # Historical metric request and cache
+│   │   └── settingChartdata.js     # Chart.js dataset preparation
+│   │
+│   ├── pages/
+│   │   ├── Home.js                 # Home route
+│   │   ├── Dashboard.js            # Market dashboard route
+│   │   ├── Coin.js                 # Coin details route
+│   │   └── ComparePage.js          # Comparison route
+│   │
+│   ├── App.css
+│   ├── App.js                      # Application routes
+│   ├── index.css                   # Global styles and theme variables
+│   └── index.js                    # React application entry point
+│
+├── server/
+│   ├── server.mjs                  # Optional CoinGecko Express proxy
+│   ├── package.json                # Proxy service dependencies and start script
+│   └── package-lock.json
+│
+├── package.json                    # React application dependencies and scripts
+└── package-lock.json
+`
+
+---
+
+## Data source and API usage
+
+Market data is provided by the public CoinGecko API. The frontend uses USD as the quote currency.
+
+| Application data | CoinGecko endpoint | Use |
+|---|---|---|
+| Market list | /api/v3/coins/markets | Current market metrics, ordered by market capitalization |
+| Coin information | /api/v3/coins/{id} | Individual coin metadata and description |
+| Historical chart | /api/v3/coins/{id}/market_chart | Historical prices, market capitalization, and total volume |
+
+The frontend market-list helper requests 50 results for page 1, ordered by market capitalization. The standalone Express proxy's /api/100-coins route requests 100 results.
+
+Historical chart requests use the selected period and daily interval. The chart metric selector chooses the prices, market_caps, or total_volumes series returned by the market-chart endpoint.
+
+CoinGecko request availability and rate limits depend on the provider and its current service plan. The application does not provide its own market-data feed.
+
+---
+
+## Run locally
+
+### Prerequisites
+
+- Node.js and npm
+- Internet connection to retrieve CoinGecko market data
+
+### 1. Clone the repository
+
+`bash
+git clone https://github.com/digvijay1129/Crypto-Tracker-Dashboard.git
+cd Crypto-Tracker-Dashboard
+`
+
+### 2. Install frontend dependencies
+
+From the project root:
+
+`bash
+npm install
+`
+
+### 3. Start the React application
+
+`bash
+npm start
+`
+
+Open http://localhost:3000 in your browser.
+
+The development server reloads when source files change.
+
+### 4. Start the optional Express proxy
+
+The proxy is not required by the current frontend. To run it separately, open another terminal:
+
+`bash
+cd server
+npm install
+npm start
+`
+
+The proxy listens at http://localhost:5000.
+
+Available local proxy routes:
+
+`http
+GET http://localhost:5000/api/100-coins
+GET http://localhost:5000/api/coin-data/bitcoin
+GET http://localhost:5000/api/coin-prices/bitcoin?days=30
+`
+
+---
+
+## Available scripts
+
+Run these commands from the project root:
+
+| Command | Description |
+|---|---|
+| npm start | Starts the React development server |
+| npm run build | Creates the optimized production build in build/ |
+| npm test | Starts the Create React App test runner |
+| npm run eject | Ejects Create React App configuration; this operation is irreversible |
+
+Run npm start from the server directory to start the optional Express proxy.
+
+---
+
+## Current scope
+
+The application focuses on public cryptocurrency market exploration and historical-data visualization.
+
+- The dashboard displays public market data; it is not a connected brokerage or exchange account.
+- The project does not execute trades or manage deposits and withdrawals.
+- A personal investment portfolio, transaction ledger, and price-alert notification service are not part of the current routed application.
+- The Watchlist route is not currently enabled.
+- The current React frontend fetches CoinGecko directly; the separate Express proxy is not connected to the frontend data helpers.
+- Market values and historical series depend on CoinGecko availability and should not be treated as guaranteed real-time exchange execution prices.
+
+---
+
+## License
+
+No license file is currently included in this repository.
