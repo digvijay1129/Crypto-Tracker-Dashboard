@@ -45,7 +45,7 @@ The React application uses the public CoinGecko API for market data and visualiz
 
 The main React application currently requests CoinGecko directly through Axios-based data helper functions. The Express service in the server directory is a separate, optional proxy API; the current React data helpers do not call that proxy.
 
-`mermaid
+```mermaid
 flowchart TD
     User[User / Browser] --> App[React Application]
     App --> Router[React Router]
@@ -66,7 +66,7 @@ flowchart TD
 
     Proxy[Optional Express Proxy in server/server.mjs] -.->|Axios requests| CG
     Proxy -.->|JSON endpoints on port 5000| ExternalClient[Optional API Client]
-`
+```
 
 ### Data flow
 
@@ -127,7 +127,7 @@ The proxy is available as a standalone service. The current frontend helper func
 
 The tree below shows the main application source. Installed dependency directories and generated build output are omitted.
 
-`text
+```text
 Crypto-Tracker-Dashboard/
 ├── public/
 │   ├── favicon.ico
@@ -196,7 +196,7 @@ Crypto-Tracker-Dashboard/
 │
 ├── package.json                    # React application dependencies and scripts
 └── package-lock.json
-`
+```
 
 ---
 
@@ -227,24 +227,24 @@ CoinGecko request availability and rate limits depend on the provider and its cu
 
 ### 1. Clone the repository
 
-`bash
+```bash
 git clone https://github.com/digvijay1129/Crypto-Tracker-Dashboard.git
 cd Crypto-Tracker-Dashboard
-`
+```
 
 ### 2. Install frontend dependencies
 
 From the project root:
 
-`bash
+```bash
 npm install
-`
+```
 
 ### 3. Start the React application
 
-`bash
+```bash
 npm start
-`
+```
 
 Open http://localhost:3000 in your browser.
 
@@ -254,21 +254,21 @@ The development server reloads when source files change.
 
 The proxy is not required by the current frontend. To run it separately, open another terminal:
 
-`bash
+```bash
 cd server
 npm install
 npm start
-`
+```
 
 The proxy listens at http://localhost:5000.
 
 Available local proxy routes:
 
-`http
+```http
 GET http://localhost:5000/api/100-coins
 GET http://localhost:5000/api/coin-data/bitcoin
 GET http://localhost:5000/api/coin-prices/bitcoin?days=30
-`
+```
 
 ---
 
